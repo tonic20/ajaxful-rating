@@ -6,6 +6,8 @@ module AjaxfulRating # :nodoc:
   end
 
   module ClassMethods
+    RATE_CLASS_NAME = "Rate"
+
     # Extends the model to be easy ajaxly rateable.
     #
     # Options:
@@ -18,7 +20,7 @@ module AjaxfulRating # :nodoc:
     #     ajaxful_rateable :stars => 10, :cache_column => :custom_column
     #   end
     def ajaxful_rateable(options = {})
-      has_many :rates_without_dimension, :as => :rateable, :class_name => 'Rate',
+      has_many :rates_without_dimension, :as => :rateable, :class_name => RATE_CLASS_NAME,
         :dependent => :destroy, :conditions => {:dimension => nil}
       has_many :raters_without_dimension, :through => :rates_without_dimension, :source => :rater
 
@@ -40,15 +42,14 @@ module AjaxfulRating # :nodoc:
       if options[:dimensions].is_a?(Array)
         options[:dimensions].each do |dimension|
           has_many "#{dimension}_rates", :dependent => :destroy,
-            :conditions => {:dimension => dimension.to_s}, :class_name => 'Rate', :as => :rateable
+            :conditions => {:dimension => dimension.to_s}, :class_name => RATE_CLASS_NAME, :as => :rateable
           has_many "#{dimension}_raters", :through => "#{dimension}_rates", :source => :rater
 
           axr_config(dimension).update(options)
         end 
       else
-          axr_config.update(options)
+        axr_config.update(options)
       end
-      
       
       include AjaxfulRating::InstanceMethods
       extend AjaxfulRating::SingletonMethods
@@ -56,7 +57,7 @@ module AjaxfulRating # :nodoc:
 
     # Makes the association between user and Rate model.
     def ajaxful_rater(options = {})
-      has_many :ratings_given, options.merge(:class_name => "Rate", :foreign_key => :rater_id)
+      has_many :ratings_given, options.merge(:class_name => RATE_CLASS_NAME, :foreign_key => :rater_id)
     end
   end
 

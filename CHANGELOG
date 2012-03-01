@@ -1,3 +1,7 @@
+== 3.0.0.beta7
+* Add static files as assets
+* remove jeweler
+
 == 3.0.0.beta6 August 23, 2011
 * Move validation to Rate model
 
