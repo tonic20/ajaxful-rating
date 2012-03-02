@@ -20,7 +20,6 @@ module AjaxfulRating # :nodoc:
     # * <tt>:show_user_rating</tt> Set to true if you want to display only the current user's rating, instead of the global average.
     # * <tt>:dimension</tt> The dimension to show the ratings for.
     # * <tt>:force_static</tt> Force static stars even when you're passing a user instance.
-    # * <tt>:to_nearest</tt> Allow stars to be set and averaged to nearest whatever. eg. 0.5 for the nearest half-star
     # 
     # Example:
     #   <%= ratings_for @article, :wrap => false %> # => Will produce something like:
@@ -77,6 +76,7 @@ module AjaxfulRating # :nodoc:
       @axr_css ||= CSSBuilder.new
       options = args.extract_options!.to_hash.symbolize_keys.slice(:small, :remote_options,
         :wrap, :show_user_rating, :dimension, :force_static, :current_user)
+
       remote_options = options.delete(:remote_options) || {}
       rateable = args.shift
       user = args.shift || (respond_to?(:current_user) ? current_user : raise(Errors::NoUserSpecified))

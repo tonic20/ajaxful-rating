@@ -30,7 +30,6 @@ module AjaxfulRating # :nodoc:
         :wrap => true,
         :small => false,
         :show_user_rating => false,
-        :disable_remote => false,
         :force_static => false,
         :current_user => (@template.current_user if @template.respond_to?(:current_user))
       }.merge(options)
@@ -38,7 +37,7 @@ module AjaxfulRating # :nodoc:
       @options[:small] = @options[:small].to_s == 'true'
       @options[:show_user_rating] = @options[:show_user_rating].to_s == 'true'
       @options[:wrap] = @options[:wrap].to_s == 'true'
-     
+      
       @remote_options = {
         :url => nil,
         :method => :post
@@ -65,8 +64,8 @@ module AjaxfulRating # :nodoc:
       
       stars << @template.content_tag(:li, i18n(:current), :class => "show-value",
         :style => "width: #{width}%")
-      stars += (1..rateable.class.max_stars/rateable.class.to_nearest).map do |i|
-        star_tag(i*rateable.class.to_nearest)
+      stars += (1..rateable.class.max_stars).map do |i|
+        star_tag(i)
       end
       @template.content_tag(:ul, stars.join.html_safe, :class => "ajaxful-rating#{' small' if options[:small]}")
     end
@@ -76,7 +75,7 @@ module AjaxfulRating # :nodoc:
       css_class = "stars-#{value}"
       @css_builder.rule(".ajaxful-rating .#{css_class}", {
         :width => "#{(value / rateable.class.max_stars.to_f) * 100}%",
-        :zIndex => "%.f" % ( (rateable.class.max_stars/rateable.class.to_nearest) + 2 - (value/rateable.class.to_nearest))
+        :zIndex => (rateable.class.max_stars + 2 - value).to_s
       })
 
       @template.content_tag(:li) do
@@ -102,13 +101,14 @@ module AjaxfulRating # :nodoc:
         :method => remote_options[:method] || :post,
         :remote => true
       }
+      
       href = "#{remote_options[:url]}?#{query}"
 
       @template.link_to(value, href, options)
     end
 
     def wrapper_tag
-      @template.content_tag(:div, ratings_tag, :class => "ajaxful-rating-wrapper#{' show-user-rating' if @options[:show_user_rating]}",
+      @template.content_tag(:div, ratings_tag, :class => "ajaxful-rating-wrapper",
         :id => rateable.wrapper_dom_id(options))
     end
   end

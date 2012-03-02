@@ -14,8 +14,6 @@ module AjaxfulRating # :nodoc:
     # * <tt>:stars</tt> Max number of stars that can be submitted.
     # * <tt>:allow_update</tt> Set to true if you want users to be able to update their votes.
     # * <tt>:cache_column</tt> Name of the column for storing the cached rating average.
-    # * <tt>:cache_column</tt> Name of the column for storing the cached rating average.
-    # * <tt>:to_nearest</tt> Allow stars to be set and averaged to nearest whatever . eg. 0.5 for the nearest half-star. May be overridden in the ratings_for
     #
     # Example:
     #   class Article < ActiveRecord::Base
@@ -37,7 +35,7 @@ module AjaxfulRating # :nodoc:
             :cache_column => :rating_average
           }
         end
-
+        
         alias_method :ajaxful_rating_options, :axr_config
       end
 
@@ -65,7 +63,7 @@ module AjaxfulRating # :nodoc:
 
   # Instance methods for the rateable object.
   module InstanceMethods
-
+    
     # Proxy for axr_config singleton method.
     def axr_config(dimension = nil)
       self.class.axr_config(dimension)
@@ -95,7 +93,7 @@ module AjaxfulRating # :nodoc:
       rate.save!
       self.update_cached_average(dimension)
     end
-
+    
     # Builds the DOM id attribute for the wrapper in view.
     def wrapper_dom_id(options = {})
       options = options.to_hash.symbolize_keys.slice(:small, :dimension)
@@ -119,13 +117,13 @@ module AjaxfulRating # :nodoc:
     def raters(dimension = nil)
       sql = "SELECT DISTINCT u.* FROM #{self.class.user_class.table_name} u "\
         "INNER JOIN rates r ON u.id = r.rater_id WHERE "
-
+      
       sql << self.class.send(:sanitize_sql_for_conditions, {
         :rateable_id => id,
         :rateable_type => self.class.base_class.name,
         :dimension => (dimension.to_s if dimension)
       }, 'r')
-
+      
       self.class.user_class.find_by_sql(sql)
     end
 
@@ -138,7 +136,7 @@ module AjaxfulRating # :nodoc:
     def rated_by?(user, dimension = nil)
       !rate_by(user, dimension).nil?
     end
-
+    
     # Returns whether or not the user can rate this object.
     # Based on if the user has already rated the object or the
     # :allow_update option is enabled.
@@ -159,20 +157,11 @@ module AjaxfulRating # :nodoc:
     # Rating average for the object.
     #
     # Pass false as param to force the calculation if you are caching it.
-    def rate_average(cached = true, dimension = nil, to_nearest = nil)
-      avg = if cached && self.class.caching_average?(dimension, to_nearest)
-        send(caching_column_name(dimension, to_nearest)).to_f
+    def rate_average(cached = true, dimension = nil)
+      avg = if cached && self.class.caching_average?(dimension)
+        send(caching_column_name(dimension)).to_f
       else
-        avg = self.rates_sum(dimension).to_f / self.total_rates(dimension).to_f
-        avg.nan? ? 0.0 : avg
-        if avg > 0
-          to_nearest ||=  axr_config[:to_nearest]
-          if to_nearest
-            notches = 1/to_nearest.to_f
-            avg = ((avg * notches).round)/notches
-          end
-        end
-        avg
+        self.rates_sum(dimension).to_f / self.total_rates(dimension).to_f
       end
       avg.nan? ? 0.0 : avg
     end
@@ -190,20 +179,20 @@ module AjaxfulRating # :nodoc:
     end
 
     # Returns the name of the cache column for the passed dimension.
-    def caching_column_name(dimension = nil, to_nearest = nil)
-      self.class.caching_column_name(dimension, to_nearest)
+    def caching_column_name(dimension = nil)
+      self.class.caching_column_name(dimension)
     end
 
     # Updates the cached average column in the rateable model.
-    def update_cached_average(dimension = nil, to_nearest = nil)
-      if self.class.caching_average?(dimension, to_nearest)
-        update_attribute caching_column_name(dimension, to_nearest), self.rate_average(false, dimension, to_nearest)
+    def update_cached_average(dimension = nil)
+      if self.class.caching_average?(dimension)
+        update_attribute caching_column_name(dimension), self.rate_average(false, dimension)
       end
     end
   end
 
   module SingletonMethods
-
+    
     # Maximum value accepted when rating the model. Default is 5.
     #
     # Change it by passing the :stars option to +ajaxful_rateable+
@@ -213,16 +202,11 @@ module AjaxfulRating # :nodoc:
       axr_config(dimension)[:stars]
     end
 
-    # Allow stars to be set and averaged to nearest whatever. eg. 0.5 for the nearest half-star
-    def to_nearest
-      axr_config[:to_nearest] || 1
-    end
-
     # Name of the class for the user model.
     def user_class_name
       Rate.reflect_on_association(:rater).options[:class_name]
     end
-
+    
     # Gets the user's class
     def user_class
       user_class_name.constantize
@@ -252,13 +236,13 @@ module AjaxfulRating # :nodoc:
     def find_statement(attr_name, attr_value, dimension = nil)
       sql = "SELECT DISTINCT r2.* FROM rates r1 INNER JOIN "\
         "#{self.base_class.table_name} r2 ON r1.rateable_id = r2.id WHERE "
-
+      
       sql << sanitize_sql_for_conditions({
         :rateable_type => self.base_class.name,
         attr_name => attr_value,
         :dimension => (dimension.to_s if dimension)
       }, 'r1')
-
+      
       find_by_sql(sql)
     end
 
@@ -273,15 +257,14 @@ module AjaxfulRating # :nodoc:
     #
     #   ajaxful_rateable :cache_column => :my_custom_column
     #
-    def caching_average?(dimension = nil, to_nearest = nil)
-      column_names.include?(caching_column_name(dimension, to_nearest))
+    def caching_average?(dimension = nil)
+      column_names.include?(caching_column_name(dimension))
     end
 
     # Returns the name of the cache column for the passed dimension.
-    def caching_column_name(dimension = nil, to_nearest = nil)
+    def caching_column_name(dimension = nil)
       name = axr_config(dimension)[:cache_column].to_s
       name += "_#{dimension.to_s.underscore}" unless dimension.blank?
-      name += "_#{to_nearest.to_s.gsub('.', '_').underscore}" unless to_nearest.blank?
       name
     end
   end
