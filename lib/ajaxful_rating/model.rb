@@ -278,7 +278,7 @@ module AjaxfulRating # :nodoc:
     end
 
     # Returns the name of the cache column for the passed dimension.
-    def caching_column_name(dimension = nil)
+    def caching_column_name(dimension = nil, to_nearest = nil)
       name = axr_config(dimension)[:cache_column].to_s
       name += "_#{dimension.to_s.underscore}" unless dimension.blank?
       name += "_#{to_nearest.to_s.gsub('.', '_').underscore}" unless to_nearest.blank?
